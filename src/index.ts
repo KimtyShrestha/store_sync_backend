@@ -4,6 +4,8 @@ import { connectDatabase } from "./database/store.sync.db";
 import { PORT } from "./config";
 import authRoutes from "./routes/auth.routes";
 import uploadRoutes from "./routes/upload.routes";
+import superadminRoutes from "./routes/superadmin.routes";
+import ownerRoutes from "./routes/owner.routes";
 
 const app: Application = express();
 
@@ -15,12 +17,13 @@ app.use(
     credentials: true,
   })
 );
-
+app.use("/api/owner", ownerRoutes);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 app.use("/api/upload", uploadRoutes);
-
+app.use("/api/superadmin", superadminRoutes);
+console.log("Mounting auth routes...");
 app.use("/api/auth", authRoutes);
 app.get("/", (req: Request, res: Response) => {
   return res
@@ -37,3 +40,4 @@ async function startServer() {
 }
 
 startServer();
+
