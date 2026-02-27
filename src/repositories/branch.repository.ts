@@ -16,6 +16,10 @@ export class BranchRepository {
     return await BranchModel.findById(id);
   }
 
+  async getBranchByManager(managerId: string) {
+  return await BranchModel.findOne({ managerId });
+  }
+
   async assignManager(branchId: string, managerId: string) {
   return await BranchModel.findByIdAndUpdate(
     branchId,
