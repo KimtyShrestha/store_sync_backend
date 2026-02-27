@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes";
 import uploadRoutes from "./routes/upload.routes";
 import superadminRoutes from "./routes/superadmin.routes";
 import ownerRoutes from "./routes/owner.routes";
+import branchRoutes from "./routes/branch.routes";
 
 const app: Application = express();
 
@@ -17,8 +18,9 @@ app.use(
     credentials: true,
   })
 );
-app.use("/api/owner", ownerRoutes);
 app.use(bodyParser.json());
+app.use("/api/branch", branchRoutes);
+app.use("/api/owner", ownerRoutes);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 app.use("/api/upload", uploadRoutes);
