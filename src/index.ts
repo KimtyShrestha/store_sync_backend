@@ -3,11 +3,23 @@ import bodyParser from "body-parser";
 import { connectDatabase } from "./database/store.sync.db";
 import { PORT } from "./config";
 import authRoutes from "./routes/auth.routes";
+import uploadRoutes from "./routes/upload.routes";
 
 const app: Application = express();
 
+import cors from "cors";
+
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
+app.use("/api/upload", uploadRoutes);
 
 app.use("/api/auth", authRoutes);
 app.get("/", (req: Request, res: Response) => {

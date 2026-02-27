@@ -1,29 +1,56 @@
 import mongoose, { Document, Schema } from "mongoose";
-import { UserType } from "../types/user.types";
-const UserSchema: Schema = new Schema<UserType>(
-    {
-        username: { type: String, required: true, unique: true },
-        email: { type: String, required: true, unique: true },
-        password: { type: String, required: true },
-        firstName: { type: String },
-        lastName: { type: String },
-        role: {
-            type: String,
-            enum: ['user', 'admin'],
-            default: 'user',
-        }
-    },
-    {
-        timestamps: true, // auto createdAt and updatedAt
-    }
-);
 
-export interface IUser extends UserType, Document { // combine UserType and Document
-    _id: mongoose.Types.ObjectId; // mongo related attribute/ custom attributes
-    createdAt: Date;
-    updatedAt: Date;
+export type UserRole = "superadmin" | "owner" | "manager";
+export type UserStatus = "pending" | "approved";
+
+export interface IUser extends Document {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+
+  role: UserRole;
+  status: UserStatus;
+
+  ownerId?: mongoose.Types.ObjectId; // Only for managers
+  profileImage?: string | null;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const UserModel = mongoose.model<IUser>('User', UserSchema);
-// UserModel is the mongoose model for User collection
-// db.users in MongoDB
+const UserSchema = new Schema<IUser>(
+  {
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+
+    firstName: { type: String },
+    lastName: { type: String },
+
+    role: {
+      type: String,
+      enum: ["superadmin", "owner", "manager"],
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["pending", "approved"],
+      default: "pending",
+    },
+
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    profileImage: {
+      type: String,
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+
+export const UserModel = mongoose.model<IUser>("User", UserSchema);
