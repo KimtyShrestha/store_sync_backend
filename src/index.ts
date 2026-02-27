@@ -8,6 +8,7 @@ import superadminRoutes from "./routes/superadmin.routes";
 import ownerRoutes from "./routes/owner.routes";
 import branchRoutes from "./routes/branch.routes";
 import dailyRecordRoutes from "./routes/dailyRecord.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
 const app: Application = express();
 
@@ -29,6 +30,7 @@ app.use("/api/superadmin", superadminRoutes);
 console.log("Mounting auth routes...");
 app.use("/api/auth", authRoutes);
 app.use("/api/daily-record", dailyRecordRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   return res
