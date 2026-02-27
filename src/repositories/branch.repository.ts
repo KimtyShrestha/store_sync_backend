@@ -16,15 +16,20 @@ export class BranchRepository {
     return await BranchModel.findById(id);
   }
 
-  async assignManager(branchId: string, managerId: string): Promise<IBranch | null> {
-    return await BranchModel.findByIdAndUpdate(
-      branchId,
-      {
-        $addToSet: {
-          managers: new mongoose.Types.ObjectId(managerId),
-        },
-      },
-      { new: true }
-    );
+  async assignManager(branchId: string, managerId: string) {
+  return await BranchModel.findByIdAndUpdate(
+    branchId,
+    { managerId },
+    { new: true }
+  );
   }
+
+  async removeManager(branchId: string) {
+  return await BranchModel.findByIdAndUpdate(
+    branchId,
+    { managerId: null },
+    { new: true }
+  );
+  }
+  
 }
