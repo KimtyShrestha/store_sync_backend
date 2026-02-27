@@ -1,4 +1,3 @@
-
 import { DailyRecordModel } from "../models/dailyRecord.model";
 import { BranchModel } from "../models/branch.model";
 import mongoose from "mongoose";
@@ -12,7 +11,7 @@ export class DashboardRepository {
     endDate?: Date
   ) {
 
-    // Default to today if no dates provided
+    // Default to today
     if (!startDate || !endDate) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -24,7 +23,7 @@ export class DashboardRepository {
       endDate = todayEnd;
     }
 
-    // Get branches of owner
+    // Get owner's branches
     const branchFilter = branchId
       ? { _id: new mongoose.Types.ObjectId(branchId), ownerId }
       : { ownerId };
@@ -39,6 +38,9 @@ export class DashboardRepository {
         totalExpense: 0,
         totalPurchases: 0,
         netProfit: 0,
+        averageDailySales: 0,
+        topBranch: null,
+        worstBranch: null,
         branchComparison: [],
         salesTrend: []
       };
@@ -67,7 +69,21 @@ export class DashboardRepository {
     const totalPurchases = totals[0]?.totalPurchases || 0;
     const netProfit = totalSales - totalExpense - totalPurchases;
 
-    // 2. Branch comparison
+    // 2. Count unique days for average calculation
+    const uniqueDays = await DailyRecordModel.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$date"
+        }
+      },
+      { $count: "totalDays" }
+    ]);
+
+    const totalDays = uniqueDays[0]?.totalDays || 1;
+    const averageDailySales = totalSales / totalDays;
+
+    // 3. Branch comparison
     const branchComparison = await DailyRecordModel.aggregate([
       { $match: matchStage },
       {
@@ -89,7 +105,20 @@ export class DashboardRepository {
       }
     ]);
 
-    // 3. Sales trend (daily)
+    // 4. Determine Top and Worst Performing Branch
+    let topBranch = null;
+    let worstBranch = null;
+
+    if (branchComparison.length > 0) {
+      const sortedByProfit = [...branchComparison].sort(
+        (a: any, b: any) => b.profit - a.profit
+      );
+
+      topBranch = sortedByProfit[0];
+      worstBranch = sortedByProfit[sortedByProfit.length - 1];
+    }
+
+    // 5. Sales Trend (Daily)
     const salesTrend = await DailyRecordModel.aggregate([
       { $match: matchStage },
       {
@@ -111,18 +140,11 @@ export class DashboardRepository {
       totalExpense,
       totalPurchases,
       netProfit,
+      averageDailySales,
+      topBranch,
+      worstBranch,
       branchComparison,
       salesTrend
     };
   }
 }
-
-
-
-
-// • Aggregate across all branches of an owner
-// • Support optional branch filter
-// • Support date range filter
-// • Default to today
-// • Calculate profit
-// • Return structured data for graphs
