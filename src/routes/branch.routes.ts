@@ -1,13 +1,11 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { BranchRepository } from "../repositories/branch.repository";
-import { Request } from "express";
 import { UserRepository } from "../repositories/user.respository";
 
 const router = Router();
 const branchRepo = new BranchRepository();
-
 const userRepo = new UserRepository();
 
 /**
@@ -18,21 +16,35 @@ router.post(
   authenticateToken,
   authorizeRoles("owner"),
   async (req: Request, res: Response) => {
-    const ownerId = (req as any).user.id;
+    try {
+      const ownerId = (req as any).user.id;
+      const { name, location } = req.body;
 
-    const { name, location } = req.body;
+      if (!name || !location) {
+        return res.status(400).json({
+          success: false,
+          message: "Name and location are required",
+        });
+      }
 
-    const branch = await branchRepo.createBranch({
-      name,
-      location,
-      ownerId,
-    });
+      const branch = await branchRepo.createBranch({
+        name,
+        location,
+        ownerId,
+      });
 
-    return res.status(201).json({
-      success: true,
-      message: "Branch created successfully",
-      data: branch,
-    });
+      return res.status(201).json({
+        success: true,
+        message: "Branch created successfully",
+        data: branch,
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
   }
 );
 
@@ -44,20 +56,28 @@ router.get(
   authenticateToken,
   authorizeRoles("owner"),
   async (req: Request, res: Response) => {
-    const ownerId = (req as any).user.id;
+    try {
+      const ownerId = (req as any).user.id;
 
-    const branches = await branchRepo.getBranchesByOwner(ownerId);
+      const branches = await branchRepo.getBranchesByOwner(ownerId);
 
-    return res.json({
-      success: true,
-      data: branches,
-    });
+      return res.json({
+        success: true,
+        data: branches,
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
   }
 );
 
-
-// Assign manager to branch
-
+/**
+ * Assign or Replace Manager
+ */
 router.patch(
   "/assign-manager/:branchId/:managerId",
   authenticateToken,
@@ -67,7 +87,7 @@ router.patch(
       const ownerId = (req as any).user.id;
       const { branchId, managerId } = req.params;
 
-      //  Check branch exists
+      // Check branch exists
       const branch = await branchRepo.getBranchById(branchId);
       if (!branch) {
         return res.status(404).json({
@@ -93,7 +113,7 @@ router.patch(
         });
       }
 
-      //  Ensure user is actually a manager
+      // Ensure role is manager
       if (manager.role !== "manager") {
         return res.status(400).json({
           success: false,
@@ -101,7 +121,7 @@ router.patch(
         });
       }
 
-      //  Ensure manager belongs to this owner
+      // Ensure manager belongs to this owner
       if (!manager.ownerId || manager.ownerId.toString() !== ownerId) {
         return res.status(403).json({
           success: false,
@@ -109,7 +129,7 @@ router.patch(
         });
       }
 
-      //  Ensure manager is approved
+      // Ensure manager is approved
       if (manager.status !== "approved") {
         return res.status(400).json({
           success: false,
@@ -117,7 +137,7 @@ router.patch(
         });
       }
 
-      //  Assign manager safely
+      // Assign / Replace manager
       const updatedBranch = await branchRepo.assignManager(
         branchId,
         managerId
@@ -125,7 +145,9 @@ router.patch(
 
       return res.json({
         success: true,
-        message: "Manager assigned successfully",
+        message: branch.managerId
+          ? "Manager replaced successfully"
+          : "Manager assigned successfully",
         data: updatedBranch,
       });
 
@@ -137,4 +159,56 @@ router.patch(
     }
   }
 );
+
+/**
+ * Remove Manager from Branch
+ */
+router.patch(
+  "/remove-manager/:branchId",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: Request, res: Response) => {
+    try {
+      const ownerId = (req as any).user.id;
+      const { branchId } = req.params;
+
+      const branch = await branchRepo.getBranchById(branchId);
+      if (!branch) {
+        return res.status(404).json({
+          success: false,
+          message: "Branch not found",
+        });
+      }
+
+      if (branch.ownerId.toString() !== ownerId) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot modify this branch",
+        });
+      }
+
+      if (!branch.managerId) {
+        return res.status(400).json({
+          success: false,
+          message: "No manager assigned to this branch",
+        });
+      }
+
+      const updatedBranch = await branchRepo.removeManager(branchId);
+
+      return res.json({
+        success: true,
+        message: "Manager removed successfully",
+        data: updatedBranch,
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+);
+
 export default router;

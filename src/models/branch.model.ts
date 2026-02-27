@@ -4,7 +4,7 @@ export interface IBranch extends Document {
   name: string;
   location: string;
   ownerId: mongoose.Types.ObjectId;
-  managers: mongoose.Types.ObjectId[];
+  managerId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,12 +24,11 @@ const BranchSchema: Schema = new Schema(
       ref: "User",
       required: true,
     },
-    managers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   {
     timestamps: true,
