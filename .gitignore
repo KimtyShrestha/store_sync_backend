@@ -5,6 +5,8 @@
 
 # Dependencies
 /node_modules
+uploads/
+.env
 
 # TypeScript build output
 /dist
