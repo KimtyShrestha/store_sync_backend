@@ -55,4 +55,12 @@ export class UserRepository implements IUserRepository {
     const result = await UserModel.findByIdAndDelete(id);
     return result ? true : false;
   }
+
+  async getPendingManagersByOwner(ownerId: string) {
+  return await UserModel.find({
+    role: "manager",
+    status: "pending",
+    ownerId: ownerId,
+  });
+}
 }
