@@ -9,6 +9,7 @@ import ownerRoutes from "./routes/owner.routes";
 import branchRoutes from "./routes/branch.routes";
 import dailyRecordRoutes from "./routes/dailyRecord.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import cookieParser from "cookie-parser";
 
 const app: Application = express();
 
@@ -16,10 +17,27 @@ import cors from "cors";
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: (origin, callback) => {
+      // allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+
+      // allow all local dev origins
+      if (
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1") ||
+        origin.startsWith("http://192.168") ||
+        origin.startsWith("http://172.")
+      ) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
+
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use("/api/branch", branchRoutes);
 app.use("/api/owner", ownerRoutes);
