@@ -33,24 +33,40 @@ export class AuthController {
 }
 
     async login(req: Request, res: Response) {
-        try {
-            const parsedData = LoginUserDTO.safeParse(req.body);
-            if (!parsedData.success) {
-                return res.status(400).json(
-                    { success: false, message: z.prettifyError(parsedData.error) }
-                )
-            }
-            const loginData: LoginUserDTO = parsedData.data;
-            const { token, user } = await userService.loginUser(loginData);
-            return res.status(200).json(
-                { success: true, message: "Login successful", data: user, token }
-            );
+  try {
+    const parsedData = LoginUserDTO.safeParse(req.body);
 
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json(
-                { success: false, message: error.message || "Internal Server Error" }
-            );
-        }
+    if (!parsedData.success) {
+      return res.status(400).json({
+        success: false,
+        message: z.prettifyError(parsedData.error),
+      });
     }
+
+    const loginData: LoginUserDTO = parsedData.data;
+
+    const { token, user } = await userService.loginUser(loginData);
+
+    // SET HTTP-ONLY COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // true in production (https)
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: user,
+    });
+
+  } catch (error: Error | any) {
+    return res.status(error.statusCode ?? 500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+}
     
 }
