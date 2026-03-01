@@ -47,17 +47,10 @@ export class AuthController {
 
     const { token, user } = await userService.loginUser(loginData);
 
-    // SET HTTP-ONLY COOKIE
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false, // true in production (https)
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-    });
-
     return res.status(200).json({
       success: true,
       message: "Login successful",
+      token, // RETURN TOKEN
       data: user,
     });
 
@@ -68,5 +61,5 @@ export class AuthController {
     });
   }
 }
-    
 }
+    
