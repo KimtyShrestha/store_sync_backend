@@ -1,8 +1,9 @@
-import { Router, Request, Response } from "express";
-import { authenticateToken } from "../middleware/auth.middleware";
+import { Router, Response } from "express";
+import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { BranchRepository } from "../repositories/branch.repository";
 import { UserRepository } from "../repositories/user.respository";
+import mongoose from "mongoose";
 
 const router = Router();
 const branchRepo = new BranchRepository();
@@ -15,9 +16,9 @@ router.post(
   "/create",
   authenticateToken,
   authorizeRoles("owner"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
-      const ownerId = (req as any).user.id;
+      const ownerId = new mongoose.Types.ObjectId(req.user!.id);
       const { name, location } = req.body;
 
       if (!name || !location) {
@@ -38,7 +39,6 @@ router.post(
         message: "Branch created successfully",
         data: branch,
       });
-
     } catch (error: any) {
       return res.status(500).json({
         success: false,
@@ -55,9 +55,9 @@ router.get(
   "/my-branches",
   authenticateToken,
   authorizeRoles("owner"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
-      const ownerId = (req as any).user.id;
+      const ownerId = req.user!.id;
 
       const branches = await branchRepo.getBranchesByOwner(ownerId);
 
@@ -65,7 +65,6 @@ router.get(
         success: true,
         data: branches,
       });
-
     } catch (error: any) {
       return res.status(500).json({
         success: false,
@@ -82,12 +81,11 @@ router.patch(
   "/assign-manager/:branchId/:managerId",
   authenticateToken,
   authorizeRoles("owner"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
-      const ownerId = (req as any).user.id;
+      const ownerId = req.user!.id;
       const { branchId, managerId } = req.params;
 
-      // Check branch exists
       const branch = await branchRepo.getBranchById(branchId);
       if (!branch) {
         return res.status(404).json({
@@ -96,7 +94,6 @@ router.patch(
         });
       }
 
-      // Ensure branch belongs to owner
       if (branch.ownerId.toString() !== ownerId) {
         return res.status(403).json({
           success: false,
@@ -104,7 +101,6 @@ router.patch(
         });
       }
 
-      // Check manager exists
       const manager = await userRepo.getUserById(managerId);
       if (!manager) {
         return res.status(404).json({
@@ -113,7 +109,6 @@ router.patch(
         });
       }
 
-      // Ensure role is manager
       if (manager.role !== "manager") {
         return res.status(400).json({
           success: false,
@@ -121,7 +116,6 @@ router.patch(
         });
       }
 
-      // Ensure manager belongs to this owner
       if (!manager.ownerId || manager.ownerId.toString() !== ownerId) {
         return res.status(403).json({
           success: false,
@@ -129,7 +123,6 @@ router.patch(
         });
       }
 
-      // Ensure manager is approved
       if (manager.status !== "approved") {
         return res.status(400).json({
           success: false,
@@ -137,7 +130,6 @@ router.patch(
         });
       }
 
-      // Assign / Replace manager
       const updatedBranch = await branchRepo.assignManager(
         branchId,
         managerId
@@ -150,7 +142,6 @@ router.patch(
           : "Manager assigned successfully",
         data: updatedBranch,
       });
-
     } catch (error: any) {
       return res.status(500).json({
         success: false,
@@ -167,9 +158,9 @@ router.patch(
   "/remove-manager/:branchId",
   authenticateToken,
   authorizeRoles("owner"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
-      const ownerId = (req as any).user.id;
+      const ownerId = req.user!.id;
       const { branchId } = req.params;
 
       const branch = await branchRepo.getBranchById(branchId);
@@ -201,7 +192,6 @@ router.patch(
         message: "Manager removed successfully",
         data: updatedBranch,
       });
-
     } catch (error: any) {
       return res.status(500).json({
         success: false,
