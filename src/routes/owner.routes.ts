@@ -2,109 +2,133 @@ import { Router, Response } from "express";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { UserRepository } from "../repositories/user.respository";
 import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
+import { Types } from "mongoose";
 
 const router = Router();
 const userRepo = new UserRepository();
 
 /**
- * View pending managers of this owner
+ * Create Manager (Auto Approved)
+ */
+router.post(
+  "/create-manager",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { firstName, lastName, email, password } = req.body;
+
+      const ownerId = new Types.ObjectId(req.user!.id);
+
+      const existingUser = await userRepo.getUserByEmail(email);
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists",
+        });
+      }
+
+      const newManager = await userRepo.createUser({
+        firstName,
+        lastName,
+        email,
+        password,
+        role: "manager",
+        status: "approved",
+        ownerId,
+      });
+
+      return res.json({
+        success: true,
+        message: "Manager created successfully",
+        data: newManager,
+      });
+
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Error creating manager",
+      });
+    }
+  }
+);
+
+/**
+ * Get All Managers of This Owner
  */
 router.get(
-  "/pending-managers",
+  "/managers",
   authenticateToken,
   authorizeRoles("owner"),
   async (req: AuthRequest, res: Response) => {
+    try {
+      const ownerId = req.user!.id;
 
-    const ownerId = req.user!.id;
+      const managers = await userRepo.getManagersByOwner(ownerId);
 
-    const managers = await userRepo.getPendingManagersByOwner(ownerId);
+      return res.json({
+        success: true,
+        data: managers,
+      });
 
-    return res.json({
-      success: true,
-      data: managers,
-    });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Error fetching managers",
+      });
+    }
   }
 );
 
-//  Approve manager
-
-router.patch(
-  "/approve-manager/:managerId",
-  authenticateToken,
-  authorizeRoles("owner"),
-  async (req: AuthRequest, res: Response) => {
-
-    const managerId = req.params.managerId;  // ✅ FIXED
-    const ownerId = req.user!.id;
-
-    const manager = await userRepo.getUserById(managerId);
-
-    if (!manager) {
-      return res.status(404).json({
-        success: false,
-        message: "Manager not found",
-      });
-    }
-
-    if (manager.role !== "manager") {
-      return res.status(400).json({
-        success: false,
-        message: "User is not a manager",
-      });
-    }
-
-    if (!manager.ownerId || manager.ownerId.toString() !== ownerId) {
-      return res.status(403).json({
-        success: false,
-        message: "You cannot approve this manager",
-      });
-    }
-
-    await userRepo.updateUser(managerId, {
-      status: "approved",
-    });
-
-    return res.json({
-      success: true,
-      message: "Manager approved successfully",
-    });
-  }
-);
-
-
-//  Reject manager
- 
+/**
+ * Delete Manager
+ */
 router.delete(
-  "/reject-manager/:managerId",
+  "/delete-manager/:managerId",
   authenticateToken,
   authorizeRoles("owner"),
   async (req: AuthRequest, res: Response) => {
+    try {
+      const managerId = req.params.managerId;
+      const ownerId = req.user!.id;
 
-    const managerId = req.params.managerId;  // ✅ FIXED
-    const ownerId = req.user!.id;
+      const manager = await userRepo.getUserById(managerId);
 
-    const manager = await userRepo.getUserById(managerId);
+      if (!manager) {
+        return res.status(404).json({
+          success: false,
+          message: "Manager not found",
+        });
+      }
 
-    if (!manager) {
-      return res.status(404).json({
+      if (manager.role !== "manager") {
+        return res.status(400).json({
+          success: false,
+          message: "User is not a manager",
+        });
+      }
+
+      if (!manager.ownerId || manager.ownerId.toString() !== ownerId) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot delete this manager",
+        });
+      }
+
+      await userRepo.deleteUser(managerId);
+
+      return res.json({
+        success: true,
+        message: "Manager deleted successfully",
+      });
+
+    } catch (error) {
+      return res.status(500).json({
         success: false,
-        message: "Manager not found",
+        message: "Error deleting manager",
       });
     }
-
-    if (!manager.ownerId || manager.ownerId.toString() !== ownerId) {
-      return res.status(403).json({
-        success: false,
-        message: "You cannot reject this manager",
-      });
-    }
-
-    await userRepo.deleteUser(managerId);
-
-    return res.json({
-      success: true,
-      message: "Manager rejected and deleted",
-    });
   }
 );
 

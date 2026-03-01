@@ -16,4 +16,17 @@ router.get("/test", (req, res) => {
   res.json({ message: "Auth route working" });
 });
 
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+});
+
 export default router;

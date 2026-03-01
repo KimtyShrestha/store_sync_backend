@@ -10,6 +10,7 @@ export interface IUserRepository {
 
   getUsersByRole(role: string): Promise<IUser[]>;
   getPendingUsersByRole(role: string): Promise<IUser[]>;
+  
 
   updateUser(id: string, updateData: Partial<IUser>): Promise<IUser | null>;
   deleteUser(id: string): Promise<boolean>;
@@ -55,6 +56,13 @@ export class UserRepository implements IUserRepository {
     const result = await UserModel.findByIdAndDelete(id);
     return result ? true : false;
   }
+
+  async getManagersByOwner(ownerId: string): Promise<IUser[]> {
+  return await UserModel.find({
+    ownerId,
+    role: "manager",
+  });
+}
 
   async getPendingManagersByOwner(ownerId: string) {
   return await UserModel.find({
