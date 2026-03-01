@@ -16,9 +16,7 @@ export class BranchRepository {
     return await BranchModel.findById(id);
   }
 
-  async getBranchByManager(managerId: string) {
-  return await BranchModel.findOne({ managerId });
-  }
+  
 
   async assignManager(branchId: string, managerId: string) {
   return await BranchModel.findByIdAndUpdate(
@@ -35,5 +33,14 @@ export class BranchRepository {
     { new: true }
   );
   }
+
+  async getBranchesWithManager(ownerId: string) {
+  return BranchModel.find({ ownerId })
+    .populate("managerId", "email firstName");
+}
+
+async getBranchByManager(managerId: string) {
+  return BranchModel.findOne({ managerId });
+}
   
 }

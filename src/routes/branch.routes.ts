@@ -75,7 +75,7 @@ router.get(
 );
 
 /**
- * Assign or Replace Manager
+ * Assign Manager (ONE branch only restriction)
  */
 router.patch(
   "/assign-manager/:branchId/:managerId",
@@ -130,6 +130,16 @@ router.patch(
         });
       }
 
+      // 🔒 NEW RESTRICTION: Check if manager already assigned
+      const existingBranch = await branchRepo.getBranchByManager(managerId);
+
+      if (existingBranch && existingBranch._id.toString() !== branchId) {
+        return res.status(400).json({
+          success: false,
+          message: "Manager is already assigned to another branch",
+        });
+      }
+
       const updatedBranch = await branchRepo.assignManager(
         branchId,
         managerId
@@ -152,7 +162,7 @@ router.patch(
 );
 
 /**
- * Remove Manager from Branch
+ * Remove Manager
  */
 router.patch(
   "/remove-manager/:branchId",
