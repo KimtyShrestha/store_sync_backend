@@ -26,7 +26,8 @@ export class DailyRecordRepository {
     data: Partial<IDailyRecord>
   ): Promise<IDailyRecord> {
 
-    const today = this.getTodayDate();
+    const today = data.date ? new Date(data.date) : this.getTodayDate();
+    today.setHours(0, 0, 0, 0);
 
     let record = await DailyRecordModel.findOne({
       branchId,
@@ -35,10 +36,12 @@ export class DailyRecordRepository {
 
     // Prepare sales items safely
     const salesItems =
-      data.salesItems?.map((item) => ({
-        itemName: item.itemName,
-        price: item.price,
-      })) || [];
+    data.salesItems?.map((item) => ({
+    itemName: item.itemName,
+    quantity: item.quantity,
+    price: item.price,
+    subtotal: item.quantity * item.price,
+  })) || [];
 
     // Prepare expense items with subtotal
     const expenseItems =
@@ -60,9 +63,9 @@ export class DailyRecordRepository {
 
     // Calculate totals
     const totalSales = salesItems.reduce(
-      (sum, item) => sum + item.price,
-      0
-    );
+    (sum, item) => sum + item.subtotal,
+    0
+  );
 
     const totalExpense = expenseItems.reduce(
       (sum, item) => sum + item.subtotal,
