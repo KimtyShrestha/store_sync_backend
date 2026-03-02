@@ -6,9 +6,11 @@ export interface IDailyRecord extends Document {
   date: Date;
 
   salesItems: {
-    itemName: string;
-    price: number;
-  }[];
+  itemName: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+}[];
 
   expenseItems: {
     category: string;
@@ -50,11 +52,13 @@ const dailyRecordSchema = new Schema<IDailyRecord>(
     },
 
     salesItems: [
-      {
-        itemName: { type: String, required: true },
-        price: { type: Number, required: true },
-      },
-    ],
+  {
+    itemName: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    price: { type: Number, required: true },
+    subtotal: { type: Number, required: true }
+  }
+],
 
     expenseItems: [
       {
