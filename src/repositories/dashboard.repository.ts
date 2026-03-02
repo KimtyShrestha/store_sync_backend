@@ -84,26 +84,40 @@ export class DashboardRepository {
     const averageDailySales = totalSales / totalDays;
 
     // 3. Branch comparison
+
     const branchComparison = await DailyRecordModel.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: "$branchId",
-          sales: { $sum: "$totalSales" },
-          expense: { $sum: "$totalExpense" },
-          purchases: { $sum: "$totalPurchases" }
-        }
-      },
-      {
-        $project: {
-          branchId: "$_id",
-          sales: 1,
-          expense: 1,
-          purchases: 1,
-          profit: { $subtract: ["$sales", { $add: ["$expense", "$purchases"] }] }
-        }
+  { $match: matchStage },
+  {
+    $group: {
+      _id: "$branchId",
+      sales: { $sum: "$totalSales" },
+      expense: { $sum: "$totalExpense" },
+      purchases: { $sum: "$totalPurchases" }
+    }
+  },
+  {
+    $lookup: {
+      from: "branches",
+      localField: "_id",
+      foreignField: "_id",
+      as: "branchInfo"
+    }
+  },
+  { $unwind: "$branchInfo" },
+  {
+    $project: {
+      branchId: "$_id",
+      branchName: "$branchInfo.name",
+      sales: 1,
+      expense: 1,
+      purchases: 1,
+      profit: {
+        $subtract: ["$sales", { $add: ["$expense", "$purchases"] }]
       }
-    ]);
+    }
+  }
+]);
+  
 
     // 4. Determine Top and Worst Performing Branch
     let topBranch = null;
