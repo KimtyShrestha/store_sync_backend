@@ -3,9 +3,12 @@ import { authorizeRoles } from "../middleware/role.middleware";
 import { UserRepository } from "../repositories/user.respository";
 import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
 import { Types } from "mongoose";
+import bcrypt from "bcrypt"; 
 
 const router = Router();
 const userRepo = new UserRepository();
+
+
 
 /**
  * Create Manager (Auto Approved)
@@ -29,11 +32,14 @@ router.post(
         });
       }
 
+      //HASH PASSWORD HERE
+      const hashedPassword = await bcrypt.hash(password, 10);
+
       const newManager = await userRepo.createUser({
         firstName,
         lastName,
         email,
-        password,
+        password: hashedPassword, // ✅ FIXED
         role: "manager",
         status: "approved",
         ownerId,
