@@ -1,4 +1,5 @@
 import { DailyRecordModel, IDailyRecord } from "../models/dailyRecord.model";
+import { BranchModel } from "../models/branch.model";
 
 export class DailyRecordRepository {
 
@@ -109,4 +110,41 @@ export class DailyRecordRepository {
   async getRecordsByBranch(branchId: string) {
     return await DailyRecordModel.find({ branchId }).sort({ date: -1 });
   }
+
+
+  async getOwnerRecords(
+  ownerId: string,
+  branchId?: string,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const match: any = {};
+
+  //  Get branches belonging to this owner
+  const branchFilter = branchId
+    ? { _id: branchId, ownerId }
+    : { ownerId };
+
+  const branches = await BranchModel.find(branchFilter);
+
+  const branchIds = branches.map(b => b._id);
+
+  if (branchIds.length === 0) {
+    return [];
+  }
+
+  //  Filter daily records by branchIds
+  match.branchId = { $in: branchIds };
+
+  //  Optional date filtering
+  if (startDate && endDate) {
+    match.date = { $gte: startDate, $lte: endDate };
+  }
+
+  // Fetch records with populated branch + manager info
+  return await DailyRecordModel.find(match)
+    .populate("branchId", "name location")
+    .populate("managerId", "firstName lastName email")
+    .sort({ date: -1 });
+}
 }

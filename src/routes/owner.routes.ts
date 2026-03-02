@@ -3,16 +3,138 @@ import { authorizeRoles } from "../middleware/role.middleware";
 import { UserRepository } from "../repositories/user.respository";
 import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
 import { Types } from "mongoose";
-import bcrypt from "bcrypt"; 
+import bcrypt from "bcrypt";
+import { UserModel } from "../models/user.model";
 
 const router = Router();
 const userRepo = new UserRepository();
 
 
+//   OWNER PROFILE ROUTES
+
 
 /**
- * Create Manager (Auto Approved)
+ * Get Owner Profile
  */
+router.get(
+  "/profile",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const ownerId = req.user!.id;
+
+      const owner = await UserModel.findById(ownerId).select("-password");
+
+      if (!owner) {
+        return res.status(404).json({
+          success: false,
+          message: "Owner not found",
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: owner,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
+ * Update Owner Profile
+ */
+router.put(
+  "/profile",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const ownerId = req.user!.id;
+      const { firstName, lastName } = req.body;
+
+      const updatedOwner = await UserModel.findByIdAndUpdate(
+        ownerId,
+        { firstName, lastName },
+        { new: true }
+      ).select("-password");
+
+      return res.json({
+        success: true,
+        data: updatedOwner,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
+ * Change Owner Password
+ */
+router.put(
+  "/change-password",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const ownerId = req.user!.id;
+      const { currentPassword, newPassword } = req.body;
+
+      const owner = await UserModel.findById(ownerId);
+
+      if (!owner) {
+        return res.status(404).json({
+          success: false,
+          message: "Owner not found",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(
+        currentPassword,
+        owner.password
+      );
+
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      owner.password = hashedPassword;
+      await owner.save();
+
+      return res.json({
+        success: true,
+        message: "Password updated successfully",
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
+
+//  MANAGER MANAGEMENT ROUTES
+ 
+
+
+  // Create Manager (Auto Approved)
+
 router.post(
   "/create-manager",
   authenticateToken,
@@ -32,14 +154,13 @@ router.post(
         });
       }
 
-      //HASH PASSWORD HERE
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newManager = await userRepo.createUser({
         firstName,
         lastName,
         email,
-        password: hashedPassword, // ✅ FIXED
+        password: hashedPassword,
         role: "manager",
         status: "approved",
         ownerId,
@@ -51,10 +172,10 @@ router.post(
         data: newManager,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: "Error creating manager",
+        message: error.message,
       });
     }
   }
@@ -78,10 +199,10 @@ router.get(
         data: managers,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: "Error fetching managers",
+        message: error.message,
       });
     }
   }
@@ -129,10 +250,10 @@ router.delete(
         message: "Manager deleted successfully",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: "Error deleting manager",
+        message: error.message,
       });
     }
   }

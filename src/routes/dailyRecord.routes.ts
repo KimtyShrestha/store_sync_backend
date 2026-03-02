@@ -46,6 +46,53 @@ router.get(
 );
 
 /**
+ * Owner - View Detailed Daily Records
+ */
+router.get(
+  "/owner",
+  authenticateToken,
+  authorizeRoles("owner"),
+  async (req: Request, res: Response) => {
+    try {
+      const ownerId = (req as any).user.id;
+
+      const { branchId, startDate, endDate } = req.query;
+
+      let start: Date | undefined;
+      let end: Date | undefined;
+
+      // Date Parsing
+      if (startDate && endDate) {
+        start = new Date(startDate as string);
+        start.setHours(0, 0, 0, 0);
+
+        end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+      }
+
+      // Call Repository
+      const records = await dailyRepo.getOwnerRecords(
+        ownerId,
+        branchId as string | undefined,
+        start,
+        end
+      );
+
+      return res.json({
+        success: true,
+        data: records,
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
  * Manager - Create or Update Today's Record
  */
 router.post(
