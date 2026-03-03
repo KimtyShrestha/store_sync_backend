@@ -32,7 +32,7 @@ export class AuthController {
     }
 }
 
-    async login(req: Request, res: Response) {
+async login(req: Request, res: Response) {
   try {
     const parsedData = LoginUserDTO.safeParse(req.body);
 
@@ -47,10 +47,18 @@ export class AuthController {
 
     const { token, user } = await userService.loginUser(loginData);
 
+    // SET COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // change to true in production
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      token, // RETURN TOKEN
+      token, // keep returning token for testing flexibility
       data: user,
     });
 
