@@ -112,6 +112,24 @@ router.post(
         });
       }
 
+      const { salesItems } = req.body;
+
+      if (!salesItems || !Array.isArray(salesItems) || salesItems.length === 0) {
+        return res.status(400).json({
+          success: false,
+           message: "salesItems are required"
+        });
+      }
+
+for (const item of salesItems) {
+  if (item.quantity <= 0 || item.price < 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid quantity or price"
+    });
+  }
+}
+
       const record = await dailyRepo.createOrUpdateTodayRecord(
         branch._id.toString(),
         managerId,

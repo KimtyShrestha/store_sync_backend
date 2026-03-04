@@ -130,7 +130,7 @@ router.patch(
         });
       }
 
-      // 🔒 NEW RESTRICTION: Check if manager already assigned
+      //  NEW RESTRICTION: Check if manager already assigned
       const existingBranch = await branchRepo.getBranchByManager(managerId);
 
       if (existingBranch && existingBranch._id.toString() !== branchId) {
