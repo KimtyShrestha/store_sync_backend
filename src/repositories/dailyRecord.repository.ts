@@ -120,6 +120,8 @@ export class DailyRecordRepository {
 ) {
   const match: any = {};
 
+
+
   //  Get branches belonging to this owner
   const branchFilter = branchId
     ? { _id: branchId, ownerId }
