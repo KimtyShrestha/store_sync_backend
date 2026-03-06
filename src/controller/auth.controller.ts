@@ -8,7 +8,7 @@ export class AuthController {
     async register(req: Request, res: Response) {
     try {
 
-        console.log("Incoming body:", req.body);   // 👈 PUT IT HERE
+        console.log("Incoming body:", req.body);   
 
         const parsedData = CreateUserDTO.safeParse(req.body); // validate request body
 
