@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { BranchRepository } from "../repositories/branch.repository";
@@ -75,6 +75,50 @@ router.get(
 );
 
 /**
+ * Manager gets their branch info (Dashboard use)
+ */
+router.get(
+  "/my-branch",
+  authenticateToken,
+  authorizeRoles("manager"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const managerId = req.user!.id;
+
+      const branch = await branchRepo.getBranchByManager(managerId);
+
+      if (!branch) {
+        return res.status(404).json({
+          success: false,
+          message: "Branch not found",
+        });
+      }
+
+      const owner = await userRepo.getUserById(
+        branch.ownerId.toString()
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          branchName: branch.name,
+          location: branch.location,
+          ownerName: owner
+            ? `${owner.firstName ?? ""} ${owner.lastName ?? ""}`.trim()
+            : "Unknown",
+        },
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+);
+
+/**
  * Assign Manager (ONE branch only restriction)
  */
 router.patch(
@@ -130,7 +174,7 @@ router.patch(
         });
       }
 
-      //  NEW RESTRICTION: Check if manager already assigned
+      // ONE branch per manager rule
       const existingBranch = await branchRepo.getBranchByManager(managerId);
 
       if (existingBranch && existingBranch._id.toString() !== branchId) {
