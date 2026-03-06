@@ -118,9 +118,9 @@ router.get(
   }
 );
 
-/**
- * Assign Manager (ONE branch only restriction)
- */
+
+//  Assign Manager (ONE branch only restriction)
+ 
 router.patch(
   "/assign-manager/:branchId/:managerId",
   authenticateToken,
@@ -205,9 +205,9 @@ router.patch(
   }
 );
 
-/**
- * Remove Manager
- */
+
+//  Remove Manager
+
 router.patch(
   "/remove-manager/:branchId",
   authenticateToken,
