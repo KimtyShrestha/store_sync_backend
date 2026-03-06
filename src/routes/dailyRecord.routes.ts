@@ -46,6 +46,46 @@ router.get(
 );
 
 /**
+ * Manager - Get All Records History
+ */
+router.get(
+  "/history",
+  authenticateToken,
+  authorizeRoles("manager"),
+  async (req: Request, res: Response) => {
+    try {
+      const managerId = (req as any).user.id;
+
+      // Get branch assigned to manager
+      const branch = await branchRepo.getBranchByManager(managerId);
+
+      if (!branch) {
+        return res.status(404).json({
+          success: false,
+          message: "Manager not assigned to any branch",
+        });
+      }
+
+      // Fetch all records for this branch
+      const records = await dailyRepo.getRecordsByBranch(
+        branch._id.toString()
+      );
+
+      return res.json({
+        success: true,
+        data: records,
+      });
+
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
  * Owner - View Detailed Daily Records
  */
 router.get(
